@@ -3,7 +3,15 @@ from stemming.porter2 import stem
 from bow_doc import BowDoc
 from bow_coll import BowColl
 
+#setting input path
+inputpath = (os.getcwd() + sys.argv[1])  #Assuming the data in a folder in the same directory as this file
 
+
+def get_stopwords():
+        stopwords_f = open('common-english-words.txt', 'r')
+        stop_words = stopwords_f.read().split(',')
+        stopwords_f.close()
+        return stop_words
 
 def parse_rcv1v2(stop_words, inputpath):
     bow_coll = BowColl()                            #Create an instance of the BowColl class
