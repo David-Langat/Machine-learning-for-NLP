@@ -33,6 +33,6 @@ def parse_rcv1v2(stop_words, inputpath):
                     if len(term) > 2 and term not in stop_words:  
                         document.add_term(term)                     # I add terms into the document object. A term is a stem of a word that has more than 2 characters and is not a common english word.
                         
-        document_collection[document.docId] = document        
+        document_collection[document.docId] = document       
     os.chdir('..')
     return document_collection
