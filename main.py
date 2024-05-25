@@ -1,7 +1,6 @@
 if __name__ == '__main__':
 
     import sys
-    import os
     
 
     #to run the program in terminal just type the lines between the dollar sign  $ py .\main.py \\RCV1v2  $  this is assuming the documents are in the folder RCV1v2
