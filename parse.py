@@ -3,17 +3,17 @@ from stemming.porter2 import stem
 from bow_doc import BowDoc
 from bow_coll import BowColl
 
-#setting input path
-inputpath = (os.getcwd() + sys.argv[1])  #Assuming the data in a folder in the same directory as this file
-
-
 def get_stopwords():
+        """Get a list of stopwords."""
+
         stopwords_f = open('common-english-words.txt', 'r')
         stop_words = stopwords_f.read().split(',')
         stopwords_f.close()
         return stop_words
 
-def parse_rcv1v2(stop_words, inputpath):
+
+def parse_documents(stop_words, inputpath):
+    print("Parsing documents...")
     bow_coll = BowColl()                            #Create an instance of the BowColl class
     #local variables
     os.chdir(inputpath)                             #change working directory to the inputpath variable
@@ -26,7 +26,7 @@ def parse_rcv1v2(stop_words, inputpath):
                 if line.startswith("<newsitem "):
                     for part in line.split():
                         if part.startswith("itemid="):
-                            document.docId = part.split("=")[1].split("\"")[1]      #get the document id and store it as an attribute for the document object
+                            document.docid = part.split("=")[1].split("\"")[1]      #get the document id and store it as an attribute for the document object
                             break 
                 if line.startswith("<text>"):
                     start_end = True
@@ -41,7 +41,7 @@ def parse_rcv1v2(stop_words, inputpath):
                     term = stem(term.lower()) 
                     if len(term) > 2 and term not in stop_words:  
                         document.add_term(term)                     # I add terms into the document object. A term is a stem of a word that has more than 2 characters and is not a common english word.
-        
+
         #set the doc_len of the document object
         document.set_doc_len(document.doc_len)
         #add document to the collection object Bowcoll
@@ -49,3 +49,20 @@ def parse_rcv1v2(stop_words, inputpath):
 
     os.chdir('..')
     return bow_coll
+
+def parse_query(query0 ,stop_words):
+    """Parse a query into a dictionary of terms and their frequencies."""
+    #local variables
+    parsed_query = {}                           #dictionary that has the stems(terms) as its keys 
+    
+    query0 = query0.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
+    query0 = query0.replace("\\s+", " ")
+    for term in query0.split(): 
+        term = stem(term.lower()) 
+        if len(term) > 2 and term not in stop_words:
+            try:
+                parsed_query[term] += 1
+            except KeyError:  
+                parsed_query[term] = 1
+    return parsed_query
+    
