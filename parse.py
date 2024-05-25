@@ -4,12 +4,12 @@ from bow_doc import BowDoc
 from bow_coll import BowColl
 
 def get_stopwords():
-        """Get a list of stopwords."""
+    """Get a list of stopwords."""
 
-        stopwords_f = open('common-english-words.txt', 'r')
-        stop_words = stopwords_f.read().split(',')
-        stopwords_f.close()
-        return stop_words
+    stopwords_f = open('common-english-words.txt', 'r')
+    stop_words = stopwords_f.read().split(',')
+    stopwords_f.close()
+    return stop_words
 
 
 def parse_documents(stop_words, inputpath):
