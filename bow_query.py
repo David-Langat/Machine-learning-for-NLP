@@ -35,4 +35,4 @@ class BowQuery:
 
     def get_queryid(self):
         """Get the ID of the query."""
-        return self.docid
+        return self.queryid

@@ -3,7 +3,7 @@
 
 from bow_coll_inorder_iterator import BowCollInorderIterator
 
-class BowColl:
+class BowDocColl:
     """Collection of BOW documents."""
 
     def __init__(self):

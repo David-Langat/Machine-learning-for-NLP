@@ -1,7 +1,7 @@
 import os, string, glob
 from stemming.porter2 import stem
 from bow_doc import BowDoc
-from bow_coll import BowColl
+from bow__doc_coll import BowDocColl
 from bow_query import BowQuery
 
 def get_stopwords():
@@ -15,7 +15,7 @@ def get_stopwords():
 
 def parse_documents(stop_words, inputpath):
     print("Parsing documents...")
-    bow_coll = BowColl()                            #Create an instance of the BowColl class
+    bow_doc_coll = BowDocColl()                            #Create an instance of the BowColl class
     #local variables
     os.chdir(inputpath)                             #change working directory to the inputpath variable
     for file in glob.glob('*.xml'):                 #Iterate through all files with .xml
@@ -46,10 +46,10 @@ def parse_documents(stop_words, inputpath):
         #set the doc_len of the document object
         document.set_doc_len(document.doc_len)
         #add document to the collection object Bowcoll
-        bow_coll.add_doc(document)  # Call the add_doc method on the instance
+        bow_doc_coll.add_doc(document)  # Call the add_doc method on the instance
 
     os.chdir('..')
-    return bow_coll
+    return bow_doc_coll
 
 def parse_query(query_file, stop_words):
     """Parse a query into a query object then add it to the collection"""
@@ -59,6 +59,7 @@ def parse_query(query_file, stop_words):
     start_end = False                           #Variable to signal the end of the document id section
     for line in open(query_file, encoding='utf-8'):                     #iterate through each line within the list
         line=line.strip()                       #remove the \n tags in the list
+        print(line)
         if(start_end == False):
             query = BowQuery(queryid=0)
             if line.startswith("<Query>"):
@@ -80,8 +81,8 @@ def parse_query(query_file, stop_words):
                     term = stem(term.lower()) 
                     if len(term) > 2 and term not in stop_words:  
                         query.add_term(term) 
-        print(query.queryid)
-        print(query.get_term_list())
+        # print(query.queryid)
+        # print(query.get_term_list())
 
                 #  for part in line.split():
                 #      print(type(part))
