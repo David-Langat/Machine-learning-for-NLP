@@ -2,11 +2,12 @@ import os, string, glob
 from stemming.porter2 import stem
 from bow_doc import BowDoc
 from bow_coll import BowColl
+from bow_query import BowQuery
 
 def get_stopwords():
     """Get a list of stopwords."""
 
-    stopwords_f = open('common-english-words.txt', 'r')
+    stopwords_f = open('common-english-words.txt', 'r', encoding='utf-8')
     stop_words = stopwords_f.read().split(',')
     stopwords_f.close()
     return stop_words
@@ -20,7 +21,7 @@ def parse_documents(stop_words, inputpath):
     for file in glob.glob('*.xml'):                 #Iterate through all files with .xml
         document = BowDoc(docid=0)    #Initializing a document object for the current file
         start_end = False                           #Variable to signal the end of the document id section
-        for line in open(file):                     #iterate through each line within the list
+        for line in open(file, encoding='utf-8'):                     #iterate through each line within the list
             line=line.strip()                       #remove the \n tags in the list
             if(start_end == False):
                 if line.startswith("<newsitem "):
@@ -50,35 +51,56 @@ def parse_documents(stop_words, inputpath):
     os.chdir('..')
     return bow_coll
 
-def parse_query(stop_words):
+def parse_query(query_file, stop_words):
     """Parse a query into a query object then add it to the collection"""
     #local variables
 
-    
-    for file in glob.glob('*.xml'):                 #Iterate through all files with .xml
-        document = BowDoc(docid=0)    #Initializing a document object for the current file
-        start_end = False                           #Variable to signal the end of the document id section
-        for line in open(file):                     #iterate through each line within the list
-            line=line.strip()                       #remove the \n tags in the list
-            if(start_end == False):
-                if line.startswith("<newsitem "):
-                    for part in line.split():
-                        if part.startswith("itemid="):
-                            document.docid = part.split("=")[1].split("\"")[1]      #get the document id and store it as an attribute for the document object
-                            break 
-                if line.startswith("<text>"):
+
+    start_end = False                           #Variable to signal the end of the document id section
+    for line in open(query_file, encoding='utf-8'):                     #iterate through each line within the list
+        line=line.strip()                       #remove the \n tags in the list
+        if(start_end == False):
+            query = BowQuery(queryid=0)
+            if line.startswith("<Query>"):
+                if line.startswith("<num>"):
+                    part = line.split()
+                    print(part)
+                    query.queryid = part[2]
+                    break
+                if line.startswith("<title>"):
                     start_end = True
-            elif line.startswith("</text>"):
+            elif line.startswith("</Query>"):
                 break
             else:
                 line = line.replace("<p>", "").replace("</p>", "")
                 line = line.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
                 line = line.replace("\\s+", " ")
                 for term in line.split():                      #I split the line into words. A word is a sequence of characters terminated by a whitespace or punctuation.
-                    document.doc_len = document.doc_len + 1
+                    query.query_len = query.query_len + 1
                     term = stem(term.lower()) 
                     if len(term) > 2 and term not in stop_words:  
-                        document.add_term(term) 
+                        query.add_term(term) 
+        print(query.queryid)
+        print(query.get_term_list())
+
+                #  for part in line.split():
+                #      print(type(part))
+        #             if part.startswith("itemid="):
+        #                 document.docid = part.split("=")[1].split("\"")[1]      #get the document id and store it as an attribute for the document object
+        #                 break 
+        #     if line.startswith("<text>"):
+        #         start_end = True
+        # elif line.startswith("</text>"):
+        #     break
+        # # else:
+        # #     line = line.replace("<p>", "").replace("</p>", "")
+        # #     line = line.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
+        # #     line = line.replace("\\s+", " ")
+        # #     for term in line.split():                      #I split the line into words. A word is a sequence of characters terminated by a whitespace or punctuation.
+        # #         document.doc_len = document.doc_len + 1
+        # #         term = stem(term.lower()) 
+        # #         if len(term) > 2 and term not in stop_words:  
+        # #             document.add_term(term) 
 
 
 
@@ -86,12 +108,12 @@ def parse_query(stop_words):
 
 
 
-    ########################################################
-    query = query.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
-    query = query.replace("\\s+", " ")
-    for term in query.split(): 
-        term = stem(term.lower()) 
-        if len(term) > 2 and term not in stop_words:
+    # ########################################################
+    # query = query.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
+    # query = query.replace("\\s+", " ")
+    # for term in query.split(): 
+    #     term = stem(term.lower()) 
+    #     if len(term) > 2 and term not in stop_words:
             
-    return parsed_query
+    # return parsed_query
     
