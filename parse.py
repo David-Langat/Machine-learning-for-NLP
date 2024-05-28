@@ -53,68 +53,30 @@ def parse_documents(stop_words, inputpath):
 
 def parse_query(query_file, stop_words):
     """Parse a query into a query object then add it to the collection"""
-    #local variables
-
-
-    start_end = False                           #Variable to signal the end of the document id section
-    for line in open(query_file, encoding='utf-8'):                     #iterate through each line within the list
-        line=line.strip()                       #remove the \n tags in the list
-        print(line)
-        if(start_end == False):
-            query = BowQuery(queryid=0)
-            if line.startswith("<Query>"):
-                if line.startswith("<num>"):
-                    part = line.split()
-                    print(part)
-                    query.queryid = part[2]
-                    break
-                if line.startswith("<title>"):
-                    start_end = True
-            elif line.startswith("</Query>"):
-                break
-            else:
-                line = line.replace("<p>", "").replace("</p>", "")
-                line = line.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
-                line = line.replace("\\s+", " ")
-                for term in line.split():                      #I split the line into words. A word is a sequence of characters terminated by a whitespace or punctuation.
-                    query.query_len = query.query_len + 1
-                    term = stem(term.lower()) 
-                    if len(term) > 2 and term not in stop_words:  
-                        query.add_term(term) 
-        # print(query.queryid)
-        # print(query.get_term_list())
-
-                #  for part in line.split():
-                #      print(type(part))
-        #             if part.startswith("itemid="):
-        #                 document.docid = part.split("=")[1].split("\"")[1]      #get the document id and store it as an attribute for the document object
-        #                 break 
-        #     if line.startswith("<text>"):
-        #         start_end = True
-        # elif line.startswith("</text>"):
-        #     break
-        # # else:
-        # #     line = line.replace("<p>", "").replace("</p>", "")
-        # #     line = line.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
-        # #     line = line.replace("\\s+", " ")
-        # #     for term in line.split():                      #I split the line into words. A word is a sequence of characters terminated by a whitespace or punctuation.
-        # #         document.doc_len = document.doc_len + 1
-        # #         term = stem(term.lower()) 
-        # #         if len(term) > 2 and term not in stop_words:  
-        # #             document.add_term(term) 
-
-
-
-
-
-
-
-    # ########################################################
-    # query = query.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
-    # query = query.replace("\\s+", " ")
-    # for term in query.split(): 
-    #     term = stem(term.lower()) 
-    #     if len(term) > 2 and term not in stop_words:
-            
-    # return parsed_query
     
+
+    with open(query_file, encoding='utf-8') as file:
+        lines = file.readlines()
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            query_not_end = True
+            while query_not_end:
+                print(line)
+                if line.startswith('</Query>'):
+                    query_not_end = False
+                    break
+                i += 1
+                if i < len(lines):
+                    line = lines[i].strip().strip('\n')
+                else:
+                    query_not_end = False
+            if not query_not_end:
+                  break
+                  
+                      
+
+            
+
+
+
