@@ -45,3 +45,14 @@ class BowQueryColl:
 
         See inorder_iter."""
         return self.inorder_iter()
+    
+    def get_collection_term_frequency(self):
+        """Get the term frequency in the collection."""
+        term_freq = {}
+        for query in self.queries.values():
+            for term in query.get_term_list():
+                try:
+                    term_freq[term] += query.get_term_count(term)
+                except KeyError:
+                    term_freq[term] = query.get_term_count(term)
+        return term_freq

@@ -50,3 +50,8 @@ class BowQuery:
     def get_queryid(self):
         """Get the ID of the query."""
         return self.queryid
+    
+    def get_query_text(self):
+        """Get the text of the query."""
+        line = self.query_title + ' ' + self.query_desc + ' ' + self.query_narr
+        return line

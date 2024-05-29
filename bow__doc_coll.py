@@ -45,3 +45,14 @@ class BowDocColl:
 
         See inorder_iter."""
         return self.inorder_iter()
+    
+    def get_collection_term_frequency(self):
+        """Get the term frequency in the collection."""
+        term_freq = {}
+        for doc in self.docs.values():
+            for term in doc.get_term_list():
+                try:
+                    term_freq[term] += doc.get_term_count(term)
+                except KeyError:
+                    term_freq[term] = doc.get_term_count(term)
+        return term_freq
