@@ -3,11 +3,25 @@ class BowQuery:
         """Constructor."""
         self.terms = {}
         self.queryid = queryid
-        self.query_len = 0
+        self.query_title=''
+        self.query_desc=''
+        self.query_narr=''
 
     def get_terms(self):
         """Get the full list of terms."""
         return self.terms
+
+    def get_query_title(self):
+        '''Get the query title'''
+        return self.query_title
+  
+    def get_query_desc(self):
+        '''Get the query description'''
+        return self.query_desc
+
+    def get_query_narr(self):
+        '''Get the query narrative'''
+        return self.query_narr
     
     def add_term(self, term):
         """Add a term occurrence to the BOW representation."""

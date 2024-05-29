@@ -2,6 +2,7 @@ import os, string, glob
 from stemming.porter2 import stem
 from bow_doc import BowDoc
 from bow__doc_coll import BowDocColl
+from bow_query_coll import BowQueryColl
 from bow_query import BowQuery
 
 def get_stopwords():
@@ -39,8 +40,8 @@ def parse_documents(stop_words, inputpath):
                 line = line.replace("\\s+", " ")
                 for term in line.split():                      #I split the line into words. A word is a sequence of characters terminated by a whitespace or punctuation.
                     document.doc_len = document.doc_len + 1
-                    term = stem(term.lower()) 
-                    if len(term) > 2 and term not in stop_words:  
+                    term = stem(term.lower())
+                    if len(term) > 2 and term not in stop_words: 
                         document.add_term(term)                     # I add terms into the document object. A term is a stem of a word that has more than 2 characters and is not a common english word.
 
         #set the doc_len of the document object
@@ -51,32 +52,39 @@ def parse_documents(stop_words, inputpath):
     os.chdir('..')
     return bow_doc_coll
 
-def parse_query(query_file, stop_words):
+def parse_query(stop_words, query_file):
     """Parse a query into a query object then add it to the collection"""
-    
-
-    with open(query_file, encoding='utf-8') as file:
-        lines = file.readlines()
-        i = 0
-        while i < len(lines):
-            line = lines[i].strip()
-            query_not_end = True
-            while query_not_end:
-                print(line)
-                if line.startswith('</Query>'):
-                    query_not_end = False
-                    break
-                i += 1
-                if i < len(lines):
-                    line = lines[i].strip().strip('\n')
-                else:
-                    query_not_end = False
-            if not query_not_end:
-                  break
-                  
-                      
-
+    query_coll = BowQueryColl()
+    with open(query_file, 'r', encoding='utf-8') as file:
+        content = file.read().split('</Query>')
+        
+        for query_block in content:
+            query_block = query_block.strip()
+            if not query_block:
+                continue
             
-
-
-
+            query_id = None
+            title = None
+            description = None
+            narrative = None
+            
+            lines = query_block.split('\n')
+            for i, line in enumerate(lines):
+                if '<num>' in line:
+                    query_id = line.split(': ')[1].strip().replace('R', '')
+                elif '<title>' in line:
+                    title = line.split('<title>')[1].strip()
+                elif '<desc>' in line:
+                    description = ' '.join(lines[i + 1:]).split('<narr>')[0].strip().replace('<desc>', '').replace('Description:', '').strip()
+                elif '<narr>' in line:
+                    narrative = ' '.join(lines[i + 1:]).replace('<narr>', '').replace('Narrative:', '').strip()
+            
+            if query_id and title and description and narrative:
+                query = BowQuery(queryid=0)  # Fix: Changed argument name from 'query_id' to 'queryid'
+                query.queryid = int(query_id)
+                query.query_title = title
+                query.query_desc = description
+                query.query_narr = narrative
+                query_coll.add_query(query)
+    
+    return query_coll

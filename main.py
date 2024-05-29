@@ -15,6 +15,7 @@ if __name__ == '__main__':
     inputpath = (os.getcwd() + sys.argv[1])  #Assuming the data in a folder in the same directory as this file
 
     query_file = 'the50Queries.txt'
-    pq(query_file, get_stopwords())
-    
+    coll = pq(get_stopwords(),query_file)
+    #print each query in the collection with its id
+    print(coll.get_query(135).get_query_narr())
     
