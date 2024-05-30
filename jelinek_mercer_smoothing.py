@@ -1,6 +1,7 @@
 import os
 from bow__doc_coll import BowDocColl 
 from bow_query_coll import BowQueryColl
+
 # """
 # Pseudocode
 # 1. Initialize:
@@ -22,39 +23,73 @@ from bow_query_coll import BowQueryColl
 
 
 # Function to calculate the relevance score of a document using Jelinek-Mercer smoothing
-def jelinek_mercer_smoothing(query, document, collection, lambda_=0.4):
-    doc_length = document.get_doc_len()
-    score = 1.0
-    # Calculate the score for each term in the query
-    for word in query.terms:
-        # Probability of the term in the document
-        p_doc = document.get_term_count(word) / doc_length if doc_length > 0 else 0
-        # Probability of the term in the collection
-        term_freq_dict = collection.get_collection_term_frequency()
-        if word in term_freq_dict:
-            p_col = term_freq_dict[word] / len(term_freq_dict)
-            # Jelinek-Mercer smoothing formula
-            score *= (lambda_ * p_doc) + ((1 - lambda_) * p_col)
-    return score
+def jelinek_mercer_smoothing(query, collection_of_documents):
+    #local variables
+    lambda_ = 0.4
+    epsilon = 1e-10  # small constant to avoid zero scores
 
-# Function to rank documents based on their relevance to a query
-def rank_documents(query, collection, lambda_=0.4):
-    rankings = []
-    # Calculate the score for each document in the collection
-    for document in collection.get_docs().values():
-        score = jelinek_mercer_smoothing(query, document, collection, lambda_)
-        rankings.append((document.get_docid(), score))
-    # Sort the documents by score in descending order
-    rankings.sort(key=lambda x: x[1], reverse=True)
-    return rankings
+    # a dictionary with document id as key and the score as value
+    collection_score = {}
+
+    #total  number  of  word  occurrences  in  data  collection
+    total_words = len(collection_of_documents.get_collection_term_frequency())
+
+    #Calculate the score for the document
+    for document in collection_of_documents.get_docs().values():
+        score = 1.0
+        document_score = 0
+        for term in query.get_terms().keys(): 
+             #number of times query word qi occurs in the data collection
+            try: 
+                ntqwc = collection_of_documents.get_collection_term_frequency()[term] 
+            except KeyError: 
+                ntqwc = 0
+            # number  of  times  query  word  qi occurs  in  document  D
+            ntqwd = document.get_term_count(term)
+            #the number of word occurrences in the document
+            doc_len = len(document.terms)
+            #calculate the score for the document
+            document_score = ((1-lambda_)*(ntqwd/doc_len)) + lambda_*(ntqwc/total_words)
+            if document_score != 0:
+                score = score * (document_score + epsilon)
+        collection_score[document.get_docid()] = score
+        #sort the collection_score by value in descending order
+        collection_score = dict(sorted(collection_score.items(), key=lambda x: x[1], reverse=True))
+    return collection_score
 
 
 
-# Function to save the rankings to an output file
-def save_rankings(rankings, output_path, query_id):
-    # Define the output file path
-    output_file = os.path.join(output_path, f'JM_LM_{query_id}Ranking.dat')
-    # Write the rankings to the output file
-    with open(output_file, 'w') as out_file:
-        for doc_id, score in rankings:
-            out_file.write(f'{doc_id} {score}\n')
+
+# Main function that saves the rankings to an output file
+def jm_lm(collections_of_queries, data_collection):
+    #get the jelinek mercer smoothing scores
+    query_position = 101
+    document_collection_position = 0
+    #changing directory to \Ranking_Output\JM_LM_Output
+    os.chdir(os.path.join(os.getcwd(), 'Ranking_Output', 'JM_LM_Output'))
+    #loop through all queries
+    while query_position <=150:
+        query = collections_of_queries.get_query(query_position)
+        output_file = os.path.join(os.getcwd(), f'JM_LM_R{query_position}Ranking.dat')
+        #get the document collection
+        collection_of_documents = data_collection.get_collection(document_collection_position)
+        rankings = jelinek_mercer_smoothing(query, collection_of_documents)
+        #save the rankings to a file
+        with open(output_file, 'w', encoding='utf-8') as out_file:
+            for i, (doc_id, score) in enumerate(rankings.items()):
+                if i >= 15:
+                    break
+                out_file.write(f'{doc_id} {score}\n')
+        document_collection_position += 1
+        query_position += 1
+    #change directory back to the root directory
+    os.chdir(os.path.join(os.getcwd(), '..','..'))
+    
+  
+   
+    # # Define the output file path
+    # output_file = os.path.join(output_path, f'JM_LM_{query_id}Ranking.dat')
+    # # Write the rankings to the output file
+    # with open(output_file, 'w') as out_file:
+    #     for doc_id, score in rankings:
+    #         out_file.write(f'{doc_id} {score}\n')
