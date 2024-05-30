@@ -1,3 +1,5 @@
+import bm25
+
 if __name__ == '__main__':
 
     import sys
@@ -25,3 +27,5 @@ if __name__ == '__main__':
     print(collection_of_queries.get_query(107).terms)
 
     #jms_score = jms(collection_of_queries.get_query(107))
+
+    bm25.perform_bm25('the50Queries.txt', inputpath)
