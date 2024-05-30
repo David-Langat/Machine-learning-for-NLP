@@ -1,3 +1,5 @@
+import bm25
+
 if __name__ == '__main__':
 
     import sys
@@ -22,6 +24,11 @@ if __name__ == '__main__':
     data_collection = pdoc(get_stopwords(), inputpath)
 
     #test
-   # print(collection_of_queries.get_query(107).terms)
+    print(collection_of_queries.get_query(107).terms)
+
     jms_score = rank_documents(collection_of_queries.get_query(107),data_collection.get_collection(6),lambda_=0.4)
     sa(jms_score,os.getcwd(),107)
+
+
+    
+    bm25.perform_bm25('the50Queries.txt', inputpath)
