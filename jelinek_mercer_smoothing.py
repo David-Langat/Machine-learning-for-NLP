@@ -30,9 +30,11 @@ def jelinek_mercer_smoothing(query, document, collection, lambda_=0.4):
         # Probability of the term in the document
         p_doc = document.get_term_count(word) / doc_length if doc_length > 0 else 0
         # Probability of the term in the collection
-        p_col = collection.get_collection_freq[word]/ collection.get_total_words(len(collection.get_collection_freq()))
-        # Jelinek-Mercer smoothing formula
-        score *= (lambda_ * p_doc) + ((1 - lambda_) * p_col)
+        term_freq_dict = collection.get_collection_term_frequency()
+        if word in term_freq_dict:
+            p_col = term_freq_dict[word] / len(term_freq_dict)
+            # Jelinek-Mercer smoothing formula
+            score *= (lambda_ * p_doc) + ((1 - lambda_) * p_col)
     return score
 
 # Function to rank documents based on their relevance to a query
@@ -45,6 +47,8 @@ def rank_documents(query, collection, lambda_=0.4):
     # Sort the documents by score in descending order
     rankings.sort(key=lambda x: x[1], reverse=True)
     return rankings
+
+
 
 # Function to save the rankings to an output file
 def save_rankings(rankings, output_path, query_id):
