@@ -94,7 +94,7 @@ def parse_query(stop_words, query_file):
                 query.query_narr = narrative
                 query_coll.add_query(query)
                 #take the query text and store as query_text variable for parsing
-                query_text = query.get_query_narr()
+                query_text = query.get_query_title()
                 query_text = query_text.translate(str.maketrans('','', string.digits)).translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
                 query_text = query_text.replace("\\s+", " ")
                 for term in query_text.split():                      
