@@ -8,7 +8,7 @@ class BowQuery:
         self.query_narr=''
 
     def get_terms(self):
-        """Get the full list of terms."""
+        """Get terms dictionary with key as term and value as term frequency."""
         return self.terms
 
     def get_query_title(self):
