@@ -32,12 +32,13 @@ def jelinek_mercer_smoothing(query, collection_of_documents):
     collection_score = {}
 
     #total  number  of  word  occurrences  in  data  collection
-    total_words = len(collection_of_documents.get_collection_term_frequency())
+    total_words = (collection_of_documents.get_total_term_frequency())
 
     #Calculate the score for the document
     for document in collection_of_documents.get_docs().values():
         score = 1.0
         document_score = 0
+        ntqwd = 0.5
         for term in query.get_terms().keys(): 
              #number of times query word qi occurs in the data collection
             try: 
