@@ -93,11 +93,60 @@ def w5(collection_of_documents,theta, i):
                 T[term] += 1
             except KeyError:
                 T[term] = 1
-    
-    print(T)
-    #calculate document frequency of all terms
-    #nltk ={} 
 
+    #calculate document frequency of all terms in the collection of documents
+    ntk ={} 
+    for doc in collection_of_documents.get_docs().values():
+        for term in doc.get_term_freq_dict().keys():
+            try:
+                ntk[term] += 1
+            except KeyError:
+                ntk[term] = 1
+    
+    #get number of documents in the collection
+    No_docs = collection_of_documents.get_num_docs()
+    #get number of relevanat documents
+    R = len(relevant_docs)
+    
+    for id, rtk in T.items():
+        T[id] = ((rtk+0.5) / (R-rtk + 0.5)) / ((ntk[id]-rtk+0.5)/(No_docs-ntk[id]-R+rtk +0.5)) 
+    
+    #calculate the mean of w5 weights.
+    meanW5= 0
+    if T:  # Check if T is not empty
+        for id, rtk in T.items():
+            meanW5 += rtk
+        meanW5 = meanW5/len(T)
+    else:
+        meanW5 = 0  # Or any default value
+
+    #Features selection
+    Features = {t:r for t,r in T.items() if r > meanW5 + theta }
+    return Features
+
+def use_w5 (collection_of_documents):
+    theta = 0.5
+    for i in range(50):
+        # Call the function with the collection, theta, and i
+        features = w5(collection_of_documents.get_collection(i), theta, i)
+
+        # Get the current working directory
+        cwd = os.getcwd()
+
+        # Define the directory path relative to the current working directory
+        dir_path = os.path.join(cwd, 'Ranking_Output', 'PRM_Output', 'PRM_W5')
+
+        # Create the directory if it doesn't exist
+        os.makedirs(dir_path, exist_ok=True)
+
+        # Define the file path
+        file_path = os.path.join(dir_path, f'PRM_R{i+101}.dat')
+
+        # Open the file in write mode
+        with open(file_path, 'w') as f:
+            # Write the features to the file in the format "term: score"
+            for term, score in features.items():
+                f.write(f'{term}: {score}\n')
    
 
     
