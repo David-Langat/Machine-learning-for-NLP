@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from parse import parse_query as pq, get_stopwords
     from parse import parse_documents as pdoc
     from jelinek_mercer_smoothing import jm_lm
-    from prm import retrieve_bm25
+    from prm import retrieve_bm25,w5
     
 
     #to run the program in terminal just type the lines between the dollar sign  $ py .\main.py \\RCV1v2  $  this is assuming the documents are in the folder RCV1v2
@@ -28,6 +28,11 @@ if __name__ == '__main__':
 
     #jm_lm(collection_of_queries, data_collection)
     
-    bm25.perform_bm25(collection_of_queries, data_collection)
+    #bm25.perform_bm25(collection_of_queries, data_collection)
 
     #retrieve_bm25(collection_of_queries, data_collection)
+    theta = 0.5
+
+    for i in range(50)
+        collection_of_documents = data_collection.get_collection(i)
+        w5(collection_of_documents,theta,i)

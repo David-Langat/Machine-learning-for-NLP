@@ -58,33 +58,49 @@ def get_relevance_scores():
     """Get lists of all document IDs, IDs with relevance score 1, and IDs with relevance score 0."""
     input_dir = os.path.join(os.getcwd(), 'Ranking_Output', 'PRM_Output', 'PRM_Training_benchmark')
 
-    doc_ids_dict = {}
+    doc_ids_dict = {i: {'all_ids': [], 'ids_score_1': [], 'ids_score_0': []} for i in range(50)}
+    counter = 0
 
-    for filename in os.listdir(input_dir):
+    for filename in sorted(os.listdir(input_dir)):
         input_file = os.path.join(input_dir, filename)
-        query_id = int(filename.split('_')[-1].replace('.txt', '').replace('R', ''))
-
-        if query_id not in doc_ids_dict:
-            doc_ids_dict[query_id] = {'all_ids': [], 'ids_score_1': [], 'ids_score_0': []}
 
         with open(input_file, 'r') as in_file:
             for line in in_file:
                 _, doc_id, relevance_score = line.strip().split()
                 relevance_score = int(relevance_score)
 
-                doc_ids_dict[query_id]['all_ids'].append(doc_id)
+                doc_ids_dict[counter]['all_ids'].append(doc_id)
                 if relevance_score == 1:
-                    doc_ids_dict[query_id]['ids_score_1'].append(doc_id)
+                    doc_ids_dict[counter]['ids_score_1'].append(doc_id)
                 elif relevance_score == 0:
-                    doc_ids_dict[query_id]['ids_score_0'].append(doc_id)
+                    doc_ids_dict[counter]['ids_score_0'].append(doc_id)
+
+        counter += 1
 
     return doc_ids_dict
 
-def w5(data_collection,theta):
+def w5(collection_of_documents,theta, i):
+    #get the relevance scores in the structure of a dictionary:: collection id as keys and values are list of relvant documents and non relevant documents
     relevance_scores = get_relevance_scores()
-    #looping through all collections
-    for i in range(50):
-        collection = data_collection.get_collection(i)
+
+    #initialize T to store term and frequency from relevant documents
+    T= {}
+    relevant_docs = relevance_scores[i]['ids_score_1']
+    for doc_id in relevant_docs:
+        document = collection_of_documents.get_doc(int(doc_id))
+        for term in document.get_term_freq_dict().keys():
+            try:
+                T[term] += 1
+            except KeyError:
+                T[term] = 1
+    
+    print(T)
+    #calculate document frequency of all terms
+    #nltk ={} 
+
+   
+
+    
 
 
 
