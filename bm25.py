@@ -6,42 +6,33 @@ def get_avg_length(collection_of_documents):
     return total_doc_length / collection_of_documents.get_num_docs() if collection_of_documents else 0
 
 
-def my_bm25(collection_of_documents, query):
-    # Following lecture slides
-    k1 = 1.2
-    b = 0.75
-    k2 = 100
+def calculate_bm25(N, ni, fi, qfi, K, k1, k2):
+    idf = math.log10((3*N - ni + 0.5) / (ni + 0.5))
+    term_freq_component = ((k1 + 1) * fi) / (K + fi)
+    query_freq_component = ((k2 + 1) * qfi) / (k2 + qfi)
+    return idf * term_freq_component * query_freq_component
 
-    # As per assignment sheet
+def my_bm25(collection_of_documents, query, k1=1.2, b=0.75, k2=500):
+    N = collection_of_documents.get_num_docs()
+    avg_length = get_avg_length(collection_of_documents)
     R = 0
     ri = 0
-    N = collection_of_documents.get_num_docs()
 
-    bm25_doc_sores = {}
+    bm25_doc_scores = {}
     for key, document in collection_of_documents.get_docs().items():
-        # Iterate through each term in the query
-        K = k1 * ((1 - b) + b * (document.get_doc_len() / get_avg_length(collection_of_documents)))
-        bm25_intermediate_sum = 0
+        dl = document.get_doc_len()
+        K = k1 * ((1 - b) + b * (dl / float(avg_length)))
+        bm25_score = 0  # Initialize bm25_score for each document
         for term, frequency in query.get_terms().items():
-            bm25_intermediate_sum = 0
             if term in document.get_term_freq_dict().keys():
-                ni = document.get_term_freq_dict()[term]
-            else:
-                ni = 0.1 # non zero otherwise log would be undefined
-            if term in document.get_term_freq_dict():
-                fi = document.get_term_freq_dict()[term]
-            else:
-                fi = 0.1 # non zero otherwise log would be undefined
-            qfi = frequency
-            # BM25 equation broken up into separate terms for better readability
-            coefficient1 = ((ri + 0.5) / (R - ri + 0.5)) / ((ni - ri + 0.5) / (N - ni - R + ri + 0.5))
-            coefficient2 = ((k1 + 1) * fi) / K + fi
-            coefficient3 = ((k2 + 1) * qfi) / k2 + qfi
-            bm25_intermediate_sum += math.log10(coefficient1 * coefficient2 * coefficient3) # Sum up for all terms in query
-        bm25_doc_sores[key] = bm25_intermediate_sum
-    sorted_bm25_doc_sores = dict(sorted(bm25_doc_sores.items(), key=lambda item: item[1], reverse=True))
-    # print(sorted_bm25_doc_sores)
-    return sorted_bm25_doc_sores
+                ni = sum(1 for doc in collection_of_documents.get_docs().values() if term in doc.get_term_freq_dict())
+                fi = document.get_term_freq_dict().get(term, 0)
+                qfi = frequency
+                bm25_score += calculate_bm25(N, ni, fi, qfi, K, k1, k2)
+        bm25_doc_scores[key] = bm25_score
+
+    sorted_bm25_doc_scores = dict(sorted(bm25_doc_scores.items(), key=lambda item: item[1], reverse=True))
+    return sorted_bm25_doc_scores
 
 def perform_bm25(collection_of_queries, data_collection):
 
