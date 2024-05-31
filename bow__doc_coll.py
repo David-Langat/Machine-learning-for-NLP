@@ -57,9 +57,8 @@ class BowDocColl:
                     term_freq[term] = doc.get_term_count(term)
         return term_freq
     
-    def get_total_words(self):
-        """Get the total number of words in the collection."""
-        total_words = 0
-        for doc in self.docs.values():
-            total_words += doc.get_doc_len()
-        return total_words
+    def get_total_term_frequency(self):
+        """Get the total term frequency in the collection."""
+        term_freq = self.get_collection_term_frequency()
+        total_freq = sum(term_freq.values())
+        return total_freq
