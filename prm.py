@@ -130,6 +130,9 @@ def use_w5 (collection_of_documents):
         # Call the function with the collection, theta, and i
         features = w5(collection_of_documents.get_collection(i), theta, i)
 
+        # Sort the features by score in descending order
+        sorted_features = dict(sorted(features.items(), key=lambda item: item[1], reverse=True))
+
         # Get the current working directory
         cwd = os.getcwd()
 
@@ -140,12 +143,12 @@ def use_w5 (collection_of_documents):
         os.makedirs(dir_path, exist_ok=True)
 
         # Define the file path
-        file_path = os.path.join(dir_path, f'PRM_R{i+101}.dat')
+        file_path = os.path.join(dir_path, f'PRM_R{i+101}W5.dat')
 
         # Open the file in write mode
         with open(file_path, 'w') as f:
-            # Write the features to the file in the format "term: score"
-            for term, score in features.items():
+            # Write the sorted features to the file in the format "term: score"
+            for term, score in sorted_features.items():
                 f.write(f'{term}: {score}\n')
    
 
