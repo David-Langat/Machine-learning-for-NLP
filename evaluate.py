@@ -99,7 +99,7 @@ def evaluate_models(relevance_judgements, bm25_rankings, jm_lm_rankings):
             results['JM_LM_MAP'].append(np.nan)
             results['JM_LM_Precision@10'].append(np.nan)
             results['JM_LM_DCG@10'].append(np.nan)
-
+        
     df_results = pd.DataFrame(results)
     df_results.loc['Average'] = df_results.mean(numeric_only=True)
     df_results.at['Average', 'Topic'] = 'Average'
@@ -119,11 +119,11 @@ def perform_t_tests(df_results):
     return t_test_results
 
 # Example usage
-relevance_judgements = load_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP-1/EvaluationBenchmark')
+relevance_judgements = load_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/EvaluationBenchmark')
 
 # Ensure you have already saved the rankings for BM25 and JM_LM
-bm25_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP-1/Ranking_Output/BM25_Output')
-jm_lm_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP-1/Ranking_Output/JM_LM_Output')
+bm25_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/BM25_Output')
+jm_lm_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/JM_LM_Output')
 
 evaluation_results = evaluate_models(relevance_judgements, bm25_rankings, jm_lm_rankings)
 
