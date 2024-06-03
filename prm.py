@@ -130,6 +130,8 @@ def use_w5 (collection_of_documents):
         # Call the function with the collection, theta, and i
         features = w5(collection_of_documents.get_collection(i), theta, i)
 
+        ranks = BM25Testing(collection_of_documents.get_collection(i), features)
+
         # Sort the features by score in descending order
         sorted_features = dict(sorted(features.items(), key=lambda item: item[1], reverse=True))
 
@@ -151,7 +153,41 @@ def use_w5 (collection_of_documents):
             for term, score in sorted_features.items():
                 f.write(f'{term}: {score}\n')
    
+   
+        
 
+        # Sort the features by score in descending order
+        sorted_ranks = dict(sorted(ranks.items(), key=lambda item: item[1], reverse=True))
+
+
+        # Define the directory path relative to the current working directory
+        dir_path2 = os.path.join(cwd, 'Ranking_Output', 'PRM_Output', 'PRM_Test_Ranks')
+
+        # Create the directory if it doesn't exist
+        os.makedirs(dir_path, exist_ok=True)
+
+        # Define the file path
+        file_path = os.path.join(dir_path2, f'PRM_R{i+101}Rank.txt')
+
+        # Open the file in write mode
+        with open(file_path, 'w') as f:
+            # Write the sorted features to the file in the format "term: score"
+            for term, score in sorted_ranks.items():
+                f.write(f'{term}: {score}\n')
+
+
+
+def BM25Testing(coll, features):
+    ranks={}
+    for id, doc in coll.get_docs().items():
+        Rank = 0
+        for term in features.keys():
+            if term in doc.get_term_list():
+                try:
+                    ranks[id] += features[term]
+                except KeyError:
+                    ranks[id] = features[term]
+    return ranks
     
 
 
