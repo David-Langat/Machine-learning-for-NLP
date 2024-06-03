@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import ttest_ind
 import os
 import re
+from scipy.stats import ttest_rel
 
 # Load relevance judgments from files
 def load_relevance_judgements(directory_path):
@@ -20,15 +20,19 @@ def load_relevance_judgements(directory_path):
                         relevance[query_id][doc_id] = int(rel)
     return relevance
 
+
 # Function to load the PRM Training Benchmark relevance judgments
-def load_prm_relevance_judgements(file_path):
+def load_prm_relevance_judgements(directory_path):
     relevance = {}
-    with open(file_path, 'r') as f:
-        for line in f:
-            query_id, doc_id, rel = line.strip().split()
-            if query_id not in relevance:
-                relevance[query_id] = {}
-            relevance[query_id][doc_id] = int(rel)
+    for filename in os.listdir(directory_path):
+        if filename.endswith(".txt"):
+            query_id = re.search(r'\d+', filename).group()
+            query_id = f'R{query_id}'
+            relevance[query_id] = {}
+            with open(os.path.join(directory_path, filename), 'r') as f:
+                for line in f:
+                    _, doc_id, rel = line.strip().split()
+                    relevance[query_id][doc_id] = int(rel)
     return relevance
 
 # Load all model rankings
@@ -51,17 +55,6 @@ def load_all_rankings(directory_path):
                 print(f"Filename '{filename}' does not match the expected pattern")
     return model_rankings
 
-# Load My_PRM model rankings from relevance judgments file
-def load_my_prm_rankings(file_path):
-    my_prm_rankings = {}
-    with open(file_path, 'r') as f:
-        for line in f:
-            query_id, doc_id, _ = line.strip().split()
-            if query_id not in my_prm_rankings:
-                my_prm_rankings[query_id] = []
-            my_prm_rankings[query_id].append(doc_id)
-    return my_prm_rankings
-
 # Calculate Average Precision (AP)
 def calculate_ap(ranked_list, relevance):
     relevant_count = 0
@@ -83,7 +76,7 @@ def calculate_dcg_at_10(ranked_list, relevance):
     return dcg
 
 # Evaluate models including My_PRM
-def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, my_prm_rankings):
+def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, prm_relevance_judgements):
     results = {
         'Topic': [],
         'BM25_MAP': [], 'BM25_Precision@10': [], 'BM25_DCG@10': [],
@@ -124,8 +117,10 @@ def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings
             results['JM_LM_DCG@10'].append(np.nan)
 
         # My_PRM evaluation
-        if query_id in my_prm_rankings:
-            my_prm_ranked_list = my_prm_rankings[query_id]
+        if query_id in prm_relevance_judgements:
+            my_prm_ranked_list = prm_relevance_judgements[query_id]
+            if not isinstance(my_prm_ranked_list, list):
+                my_prm_ranked_list = list(my_prm_ranked_list)
             ap_my_prm = calculate_ap(my_prm_ranked_list, relevance)
             precision_at_10_my_prm = calculate_precision_at_10(my_prm_ranked_list, relevance)
             dcg_at_10_my_prm = calculate_dcg_at_10(my_prm_ranked_list, relevance)
@@ -142,8 +137,8 @@ def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings
     df_results.at['Average', 'Topic'] = 'Average'
     return df_results
 
-# Perform t-tests including My_PRM
-def perform_t_tests_with_prm(df_results):
+# Perform paired t-tests
+def perform_paired_t_tests(df_results):
     metrics = ['MAP', 'Precision@10', 'DCG@10']
     t_test_results = {}
 
@@ -151,11 +146,17 @@ def perform_t_tests_with_prm(df_results):
         bm25_scores = df_results[f'BM25_{metric}'].dropna()
         jm_lm_scores = df_results[f'JM_LM_{metric}'].dropna()
         my_prm_scores = df_results[f'My_PRM_{metric}'].dropna()
-        
-        t_stat_bm25_jm_lm, p_value_bm25_jm_lm = ttest_ind(bm25_scores, jm_lm_scores)
-        t_stat_bm25_my_prm, p_value_bm25_my_prm = ttest_ind(bm25_scores, my_prm_scores)
-        t_stat_jm_lm_my_prm, p_value_jm_lm_my_prm = ttest_ind(jm_lm_scores, my_prm_scores)
-        
+
+        # Ensure the scores are aligned by the same topic
+        common_indices = bm25_scores.index.intersection(jm_lm_scores.index).intersection(my_prm_scores.index)
+        bm25_scores = bm25_scores.loc[common_indices]
+        jm_lm_scores = jm_lm_scores.loc[common_indices]
+        my_prm_scores = my_prm_scores.loc[common_indices]
+
+        t_stat_bm25_jm_lm, p_value_bm25_jm_lm = ttest_rel(bm25_scores, jm_lm_scores)
+        t_stat_bm25_my_prm, p_value_bm25_my_prm = ttest_rel(bm25_scores, my_prm_scores)
+        t_stat_jm_lm_my_prm, p_value_jm_lm_my_prm = ttest_rel(jm_lm_scores, my_prm_scores)
+
         t_test_results[metric] = {
             'BM25_vs_JM_LM': {'t_stat': t_stat_bm25_jm_lm, 'p_value': p_value_bm25_jm_lm},
             'BM25_vs_My_PRM': {'t_stat': t_stat_bm25_my_prm, 'p_value': p_value_bm25_my_prm},
@@ -163,30 +164,18 @@ def perform_t_tests_with_prm(df_results):
         }
 
     return t_test_results
-# Example usage
+# Load the evaluation results and perform paired t-tests
 relevance_judgements = load_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/EvaluationBenchmark')
 # Load PRM relevance judgments
-prm_relevance_judgements = load_prm_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/PRM_Output/PRM_Training_benchmark/PRM_Training_Benchmark_R101.txt')
-relevance_judgements.update(prm_relevance_judgements)
+prm_rankings = load_prm_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/PRM_Output/PRM_Training_benchmark')
 
-# Ensure you have already saved the rankings for BM25, JM_LM, and My_PRM
+# Load the rankings for BM25, JM_LM, and My_PRM
 bm25_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/BM25_Output')
 jm_lm_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/JM_LM_Output')
-my_prm_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/PRM_Output')
+
 
 # Evaluate the models
-evaluation_results = evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, my_prm_rankings)
-
-# Perform t-tests
-t_test_results = perform_t_tests_with_prm(evaluation_results)
-
-# Print t-test results
-for metric, comparisons in t_test_results.items():
-    print(f"{metric} T-Test Results:")
-    for comparison, result in comparisons.items():
-        print(f"  {comparison}:")
-        print(f"    t-statistic: {result['t_stat']}")
-        print(f"    p-value: {result['p_value']}")
+evaluation_results = evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, prm_rankings)
 
 # Create individual tables
 map_table = evaluation_results[['Topic', 'BM25_MAP', 'JM_LM_MAP', 'My_PRM_MAP']]
@@ -207,3 +196,37 @@ print(dcg_table.to_string(index=False))
 map_table.to_csv('map_table.csv', index=False)
 precision_table.to_csv('precision_table.csv', index=False)
 dcg_table.to_csv('dcg_table.csv', index=False)
+
+# Perform paired t-tests
+t_test_results = perform_paired_t_tests(evaluation_results)
+
+# Print t-test results
+for metric, comparisons in t_test_results.items():
+    print(f"{metric} Paired T-Test Results:")
+    for comparison, result in comparisons.items():
+        print(f"  {comparison}:")
+        print(f"    t-statistic: {result['t_stat']}")
+        print(f"    p-value: {result['p_value']}")
+
+# Save the t-test results to a file
+with open('t_test_results.txt', 'w') as f:
+    for metric, comparisons in t_test_results.items():
+        f.write(f"{metric} Paired T-Test Results:\n")
+        for comparison, result in comparisons.items():
+            f.write(f"  {comparison}:\n")
+            f.write(f"    t-statistic: {result['t_stat']}\n")
+            f.write(f"    p-value: {result['p_value']}\n")
+
+# Recommendations based on t-test results
+recommendations = []
+for metric, comparisons in t_test_results.items():
+    for comparison, result in comparisons.items():
+        if result['p_value'] < 0.05:
+            recommendations.append(f"{metric}: {comparison} shows a significant difference (p < 0.05)")
+
+if recommendations:
+    print("\nRecommendations based on t-test results:")
+    for recommendation in recommendations:
+        print(recommendation)
+else:
+    print("\nNo significant differences found in the paired t-tests.")
