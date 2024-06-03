@@ -79,7 +79,7 @@ def get_relevance_scores():
 
     return doc_ids_dict
 
-def w5(collection_of_documents,theta, i):
+def calculate_w5(collection_of_documents,theta, i):
     #get the relevance scores in the structure of a dictionary:: collection id as keys and values are list of relvant documents and non relevant documents
     relevance_scores = get_relevance_scores()
 
@@ -124,11 +124,11 @@ def w5(collection_of_documents,theta, i):
     Features = {t:r for t,r in T.items() if r > meanW5 + theta }
     return Features
 
-def use_w5 (collection_of_documents):
+def generate_w5_scores (collection_of_documents):
     theta = 0.5
     for i in range(50):
         # Call the function with the collection, theta, and i
-        features = w5(collection_of_documents.get_collection(i), theta, i)
+        features = calculate_w5(collection_of_documents.get_collection(i), theta, i)
 
         ranks = BM25Testing(collection_of_documents.get_collection(i), features)
 
