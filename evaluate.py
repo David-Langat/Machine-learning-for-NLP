@@ -20,6 +20,17 @@ def load_relevance_judgements(directory_path):
                         relevance[query_id][doc_id] = int(rel)
     return relevance
 
+# Function to load the PRM Training Benchmark relevance judgments
+def load_prm_relevance_judgements(file_path):
+    relevance = {}
+    with open(file_path, 'r') as f:
+        for line in f:
+            query_id, doc_id, rel = line.strip().split()
+            if query_id not in relevance:
+                relevance[query_id] = {}
+            relevance[query_id][doc_id] = int(rel)
+    return relevance
+
 # Load all model rankings
 def load_all_rankings(directory_path):
     model_rankings = {}
@@ -39,6 +50,17 @@ def load_all_rankings(directory_path):
             else:
                 print(f"Filename '{filename}' does not match the expected pattern")
     return model_rankings
+
+# Load My_PRM model rankings from relevance judgments file
+def load_my_prm_rankings(file_path):
+    my_prm_rankings = {}
+    with open(file_path, 'r') as f:
+        for line in f:
+            query_id, doc_id, _ = line.strip().split()
+            if query_id not in my_prm_rankings:
+                my_prm_rankings[query_id] = []
+            my_prm_rankings[query_id].append(doc_id)
+    return my_prm_rankings
 
 # Calculate Average Precision (AP)
 def calculate_ap(ranked_list, relevance):
@@ -60,12 +82,13 @@ def calculate_dcg_at_10(ranked_list, relevance):
     dcg = sum((relevance.get(doc_id, 0) / np.log2(i + 2)) for i, doc_id in enumerate(ranked_list[:10]))
     return dcg
 
-# Evaluate models
-def evaluate_models(relevance_judgements, bm25_rankings, jm_lm_rankings):
+# Evaluate models including My_PRM
+def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, my_prm_rankings):
     results = {
         'Topic': [],
         'BM25_MAP': [], 'BM25_Precision@10': [], 'BM25_DCG@10': [],
-        'JM_LM_MAP': [], 'JM_LM_Precision@10': [], 'JM_LM_DCG@10': []
+        'JM_LM_MAP': [], 'JM_LM_Precision@10': [], 'JM_LM_DCG@10': [],
+        'My_PRM_MAP': [], 'My_PRM_Precision@10': [], 'My_PRM_DCG@10': []
     }
 
     for query_id in relevance_judgements:
@@ -99,56 +122,85 @@ def evaluate_models(relevance_judgements, bm25_rankings, jm_lm_rankings):
             results['JM_LM_MAP'].append(np.nan)
             results['JM_LM_Precision@10'].append(np.nan)
             results['JM_LM_DCG@10'].append(np.nan)
-        
+
+        # My_PRM evaluation
+        if query_id in my_prm_rankings:
+            my_prm_ranked_list = my_prm_rankings[query_id]
+            ap_my_prm = calculate_ap(my_prm_ranked_list, relevance)
+            precision_at_10_my_prm = calculate_precision_at_10(my_prm_ranked_list, relevance)
+            dcg_at_10_my_prm = calculate_dcg_at_10(my_prm_ranked_list, relevance)
+            results['My_PRM_MAP'].append(ap_my_prm)
+            results['My_PRM_Precision@10'].append(precision_at_10_my_prm)
+            results['My_PRM_DCG@10'].append(dcg_at_10_my_prm)
+        else:
+            results['My_PRM_MAP'].append(np.nan)
+            results['My_PRM_Precision@10'].append(np.nan)
+            results['My_PRM_DCG@10'].append(np.nan)
+
     df_results = pd.DataFrame(results)
     df_results.loc['Average'] = df_results.mean(numeric_only=True)
     df_results.at['Average', 'Topic'] = 'Average'
     return df_results
 
-# Perform t-tests
-def perform_t_tests(df_results):
+# Perform t-tests including My_PRM
+def perform_t_tests_with_prm(df_results):
     metrics = ['MAP', 'Precision@10', 'DCG@10']
     t_test_results = {}
 
     for metric in metrics:
         bm25_scores = df_results[f'BM25_{metric}'].dropna()
         jm_lm_scores = df_results[f'JM_LM_{metric}'].dropna()
-        t_stat, p_value = ttest_ind(bm25_scores, jm_lm_scores)
-        t_test_results[metric] = {'t_stat': t_stat, 'p_value': p_value}
+        my_prm_scores = df_results[f'My_PRM_{metric}'].dropna()
+        
+        t_stat_bm25_jm_lm, p_value_bm25_jm_lm = ttest_ind(bm25_scores, jm_lm_scores)
+        t_stat_bm25_my_prm, p_value_bm25_my_prm = ttest_ind(bm25_scores, my_prm_scores)
+        t_stat_jm_lm_my_prm, p_value_jm_lm_my_prm = ttest_ind(jm_lm_scores, my_prm_scores)
+        
+        t_test_results[metric] = {
+            'BM25_vs_JM_LM': {'t_stat': t_stat_bm25_jm_lm, 'p_value': p_value_bm25_jm_lm},
+            'BM25_vs_My_PRM': {'t_stat': t_stat_bm25_my_prm, 'p_value': p_value_bm25_my_prm},
+            'JM_LM_vs_My_PRM': {'t_stat': t_stat_jm_lm_my_prm, 'p_value': p_value_jm_lm_my_prm}
+        }
 
     return t_test_results
-
 # Example usage
 relevance_judgements = load_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/EvaluationBenchmark')
+# Load PRM relevance judgments
+prm_relevance_judgements = load_prm_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/PRM_Output/PRM_Training_benchmark/PRM_Training_Benchmark_R101.txt')
+relevance_judgements.update(prm_relevance_judgements)
 
-# Ensure you have already saved the rankings for BM25 and JM_LM
+# Ensure you have already saved the rankings for BM25, JM_LM, and My_PRM
 bm25_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/BM25_Output')
 jm_lm_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/JM_LM_Output')
+my_prm_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/PRM_Output')
 
-evaluation_results = evaluate_models(relevance_judgements, bm25_rankings, jm_lm_rankings)
+# Evaluate the models
+evaluation_results = evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, my_prm_rankings)
 
 # Perform t-tests
-t_test_results = perform_t_tests(evaluation_results)
+t_test_results = perform_t_tests_with_prm(evaluation_results)
 
 # Print t-test results
-for metric, result in t_test_results.items():
-    print(f"{metric} T-Test:")
-    print(f"  t-statistic: {result['t_stat']}")
-    print(f"  p-value: {result['p_value']}")
+for metric, comparisons in t_test_results.items():
+    print(f"{metric} T-Test Results:")
+    for comparison, result in comparisons.items():
+        print(f"  {comparison}:")
+        print(f"    t-statistic: {result['t_stat']}")
+        print(f"    p-value: {result['p_value']}")
 
 # Create individual tables
-map_table = evaluation_results[['Topic', 'BM25_MAP', 'JM_LM_MAP']]
-precision_table = evaluation_results[['Topic', 'BM25_Precision@10', 'JM_LM_Precision@10']]
-dcg_table = evaluation_results[['Topic', 'BM25_DCG@10', 'JM_LM_DCG@10']]
+map_table = evaluation_results[['Topic', 'BM25_MAP', 'JM_LM_MAP', 'My_PRM_MAP']]
+precision_table = evaluation_results[['Topic', 'BM25_Precision@10', 'JM_LM_Precision@10', 'My_PRM_Precision@10']]
+dcg_table = evaluation_results[['Topic', 'BM25_DCG@10', 'JM_LM_DCG@10', 'My_PRM_DCG@10']]
 
 # Display tables
-print("Table 1. The performance of 2 models on average precision (MAP)")
+print("Table 1. The performance of 3 models on average precision (MAP)")
 print(map_table.to_string(index=False))
 
-print("\nTable 2. The performance of 2 models on precision@10")
+print("\nTable 2. The performance of 3 models on precision@10")
 print(precision_table.to_string(index=False))
 
-print("\nTable 3. The performance of 2 models on DCG@10")
+print("\nTable 3. The performance of 3 models on DCG@10")
 print(dcg_table.to_string(index=False))
 
 # Save to CSV
