@@ -8,7 +8,7 @@ if __name__ == '__main__':
     from parse import parse_query as pq, get_stopwords
     from parse import parse_documents as pdoc
     from jelinek_mercer_smoothing import jm_lm
-    from prm import retrieve_bm25,w5,use_w5,create_prm_benchmark
+    from prm import retrieve_bm25,generate_w5_scores,create_prm_benchmark
     
 
     #to run the program in terminal just type the lines between the dollar sign  $ py .\main.py \\RCV1v2  $  this is assuming the documents are in the folder RCV1v2
@@ -33,4 +33,4 @@ if __name__ == '__main__':
     bm25.perform_bm25(collection_of_queries, data_collection)
     create_prm_benchmark()
   
-    use_w5(data_collection)
+    generate_w5_scores(data_collection)
