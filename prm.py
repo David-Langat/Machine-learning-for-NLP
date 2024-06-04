@@ -67,7 +67,7 @@ def get_relevance_scores():
         with open(input_file, 'r') as in_file:
             for line in in_file:
                 _, doc_id, relevance_score = line.strip().split()
-                relevance_score = int(relevance_score)
+                relevance_score = float(relevance_score)
 
                 doc_ids_dict[counter]['all_ids'].append(doc_id)
                 if relevance_score == 1:
@@ -171,9 +171,9 @@ def generate_w5_scores (collection_of_documents):
 
         # Open the file in write mode
         with open(file_path, 'w') as f:
-            # Write the sorted features to the file in the format "term: score"
+            # Write the sorted features to the file in the format "term score"
             for term, score in sorted_ranks.items():
-                f.write(f'{term}: {score}\n')
+                f.write(f'{term} {score}\n')
 
 
 
