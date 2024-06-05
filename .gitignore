@@ -3120,3 +3120,4 @@ Ranking_Output/PRM_Output/PRM_W5/PRM_R150W5.dat
 dcg_table.csv
 map_table.csv
 precision_table.csv
+ttest_results.csv

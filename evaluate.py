@@ -4,78 +4,83 @@ import os
 import re
 from scipy.stats import ttest_rel
 
-# Load relevance judgments from files
+# Function to load relevance judgments from files
 def load_relevance_judgements(directory_path):
     relevance = {}
-    for filename in os.listdir(directory_path):
-        if filename.endswith(".txt"):
-            query_id = re.search(r'\d+', filename).group()
-            query_id = f'R{query_id}'
+    for filename in os.listdir(directory_path):  # Iterate over files in the directory
+        if filename.endswith(".txt"):  # Check if the file is a text file
+            query_id = re.search(r'\d+', filename).group()  # Extract query ID from filename
+            query_id = f'R{query_id}'  # Format query ID
             relevance[query_id] = {}
-            with open(os.path.join(directory_path, filename), 'r') as f:
-                for line in f:
-                    parts = line.strip().split()
-                    if len(parts) == 3:
+            with open(os.path.join(directory_path, filename), 'r') as f:  # Open file
+                for line in f:  # Read each line
+                    parts = line.strip().split()  # Split line into parts
+                    if len(parts) == 3:  # Check if the line has three parts
                         _, doc_id, rel = parts
-                        relevance[query_id][doc_id] = int(rel)
+                        relevance[query_id][doc_id] = int(rel)  # Store relevance judgment
     return relevance
 
-
-# Function to load the PRM Training Benchmark relevance judgments
-def load_prm_relevance_judgements(directory_path):
-    relevance = {}
-    for filename in os.listdir(directory_path):
-        if filename.endswith(".txt"):
-            query_id = re.search(r'\d+', filename).group()
-            query_id = f'R{query_id}'
-            relevance[query_id] = {}
-            with open(os.path.join(directory_path, filename), 'r') as f:
-                for line in f:
-                    _, doc_id, rel = line.strip().split()
-                    relevance[query_id][doc_id] = int(rel)
-    return relevance
-
-# Load all model rankings
-def load_all_rankings(directory_path):
+# Function to load the PRM rankings with flexible format handling
+def load_prm_rankings(filepath):
     model_rankings = {}
-    pattern = re.compile(r'_(R\d+)Ranking\.dat$')  # Matches _R<query_id>Ranking.dat
+    pattern = re.compile(r'_(R\d+)Rank\.txt$')  # Regex pattern to match PRM ranking files
 
-    for filename in os.listdir(directory_path):
-        if filename.endswith(".dat"):
-            match = pattern.search(filename)
+    for filename in os.listdir(filepath):  # Iterate over files in the directory
+        if filename.endswith(".txt"):  # Check if the file is a text file
+            match = pattern.search(filename)  # Match filename to pattern
             if match:
-                query_id = match.group(1)  # Extracts the R<query_id> part
+                query_id = match.group(1)  # Extract query ID
                 ranked_list = []
-                with open(os.path.join(directory_path, filename), 'r') as f:
-                    for line in f:
-                        doc_id, score = line.strip().split()
-                        ranked_list.append(doc_id)
-                model_rankings[query_id] = ranked_list
+                with open(os.path.join(filepath, filename), 'r') as f:  # Open file
+                    for line in f:  # Read each line
+                        doc_id, score = line.strip().split()  # Split line into document ID and score
+                        ranked_list.append(doc_id)  # Append document ID to the ranked list
+                model_rankings[query_id] = ranked_list  # Store ranked list for the query
             else:
                 print(f"Filename '{filename}' does not match the expected pattern")
     return model_rankings
 
-# Calculate Average Precision (AP)
+# Function to load all model rankings from files
+def load_all_rankings(directory_path):
+    model_rankings = {}
+    pattern = re.compile(r'_(R\d+)Ranking\.dat$')  # Regex pattern to match ranking files
+
+    for filename in os.listdir(directory_path):  # Iterate over files in the directory
+        if filename.endswith(".dat"):  # Check if the file is a .dat file
+            match = pattern.search(filename)  # Match filename to pattern
+            if match:
+                query_id = match.group(1)  # Extract query ID
+                ranked_list = []
+                with open(os.path.join(directory_path, filename), 'r') as f:  # Open file
+                    for line in f:  # Read each line
+                        doc_id, score = line.strip().split()  # Split line into document ID and score
+                        ranked_list.append(doc_id)  # Append document ID to the ranked list
+                model_rankings[query_id] = ranked_list  # Store ranked list for the query
+            else:
+                print(f"Filename '{filename}' does not match the expected pattern")
+    return model_rankings
+
+# Function to calculate Average Precision (AP)
 def calculate_ap(ranked_list, relevance):
     relevant_count = 0
     precision_at_k = []
-    for i, doc_id in enumerate(ranked_list, 1):
-        if relevance.get(doc_id, 0) == 1:
+    for i, doc_id in enumerate(ranked_list, 1):  # Iterate over the ranked list
+        if relevance.get(doc_id, 0) == 1:  # Check if the document is relevant
             relevant_count += 1
-            precision_at_k.append(relevant_count / i)
-    return np.mean(precision_at_k) if precision_at_k else 0
+            precision_at_k.append(relevant_count / i)  # Calculate precision at k
+    return np.mean(precision_at_k) if precision_at_k else 0  # Return mean average precision
 
-# Calculate Precision@10
+# Function to calculate Precision@10
 def calculate_precision_at_10(ranked_list, relevance):
-    relevant_count = sum(1 for doc_id in ranked_list[:10] if relevance.get(doc_id, 0) == 1)
-    return relevant_count / 10
+    relevant_count = sum(1 for doc_id in ranked_list[:10] if relevance.get(doc_id, 0) == 1)  # Count relevant documents in top 10
+    return relevant_count / 10  # Return precision at 10
 
-# Calculate DCG@10
+# Function to calculate DCG@10
 def calculate_dcg_at_10(ranked_list, relevance):
-    dcg = sum((relevance.get(doc_id, 0) / np.log2(i + 2)) for i, doc_id in enumerate(ranked_list[:10]))
+    dcg = sum((relevance.get(doc_id, 0) / np.log2(i + 2)) for i, doc_id in enumerate(ranked_list[:10]))  # Calculate DCG at 10
     return dcg
 
-# Evaluate models including My_PRM
+# Function to evaluate models including My_PRM
 def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, prm_relevance_judgements):
     results = {
         'Topic': [],
@@ -84,7 +89,7 @@ def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings
         'My_PRM_MAP': [], 'My_PRM_Precision@10': [], 'My_PRM_DCG@10': []
     }
 
-    for query_id in relevance_judgements:
+    for query_id in relevance_judgements:  # Iterate over relevance judgments
         relevance = relevance_judgements[query_id]
         results['Topic'].append(query_id)
 
@@ -119,8 +124,6 @@ def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings
         # My_PRM evaluation
         if query_id in prm_relevance_judgements:
             my_prm_ranked_list = prm_relevance_judgements[query_id]
-            if not isinstance(my_prm_ranked_list, list):
-                my_prm_ranked_list = list(my_prm_ranked_list)
             ap_my_prm = calculate_ap(my_prm_ranked_list, relevance)
             precision_at_10_my_prm = calculate_precision_at_10(my_prm_ranked_list, relevance)
             dcg_at_10_my_prm = calculate_dcg_at_10(my_prm_ranked_list, relevance)
@@ -132,47 +135,23 @@ def evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings
             results['My_PRM_Precision@10'].append(np.nan)
             results['My_PRM_DCG@10'].append(np.nan)
 
-    df_results = pd.DataFrame(results)
-    df_results.loc['Average'] = df_results.mean(numeric_only=True)
-    df_results.at['Average', 'Topic'] = 'Average'
+    df_results = pd.DataFrame(results)  # Create a DataFrame from the results
+    df_results.loc['Average'] = df_results.mean(numeric_only=True)  # Calculate average for each metric
+    df_results.at['Average', 'Topic'] = 'Average'  # Label the average row
     return df_results
 
-# Perform paired t-tests
-def perform_paired_t_tests(df_results):
-    metrics = ['MAP', 'Precision@10', 'DCG@10']
-    t_test_results = {}
+# Define paths
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the current script directory
+relevance_judgements_path = os.path.join(script_dir, 'EvaluationBenchmark')
+prm_rankings_path = os.path.join(script_dir, 'Ranking_Output', 'PRM_Output', 'PRM_Test_Ranks')
+bm25_rankings_path = os.path.join(script_dir, 'Ranking_Output', 'BM25_Output')
+jm_lm_rankings_path = os.path.join(script_dir, 'Ranking_Output', 'JM_LM_Output')
 
-    for metric in metrics:
-        bm25_scores = df_results[f'BM25_{metric}'].dropna()
-        jm_lm_scores = df_results[f'JM_LM_{metric}'].dropna()
-        my_prm_scores = df_results[f'My_PRM_{metric}'].dropna()
-
-        # Ensure the scores are aligned by the same topic
-        common_indices = bm25_scores.index.intersection(jm_lm_scores.index).intersection(my_prm_scores.index)
-        bm25_scores = bm25_scores.loc[common_indices]
-        jm_lm_scores = jm_lm_scores.loc[common_indices]
-        my_prm_scores = my_prm_scores.loc[common_indices]
-
-        t_stat_bm25_jm_lm, p_value_bm25_jm_lm = ttest_rel(bm25_scores, jm_lm_scores)
-        t_stat_bm25_my_prm, p_value_bm25_my_prm = ttest_rel(bm25_scores, my_prm_scores)
-        t_stat_jm_lm_my_prm, p_value_jm_lm_my_prm = ttest_rel(jm_lm_scores, my_prm_scores)
-
-        t_test_results[metric] = {
-            'BM25_vs_JM_LM': {'t_stat': t_stat_bm25_jm_lm, 'p_value': p_value_bm25_jm_lm},
-            'BM25_vs_My_PRM': {'t_stat': t_stat_bm25_my_prm, 'p_value': p_value_bm25_my_prm},
-            'JM_LM_vs_My_PRM': {'t_stat': t_stat_jm_lm_my_prm, 'p_value': p_value_jm_lm_my_prm}
-        }
-
-    return t_test_results
-# Load the evaluation results and perform paired t-tests
-relevance_judgements = load_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/EvaluationBenchmark')
-# Load PRM relevance judgments
-prm_rankings = load_prm_relevance_judgements('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/PRM_Output/PRM_Training_benchmark')
-
-# Load the rankings for BM25, JM_LM, and My_PRM
-bm25_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/BM25_Output')
-jm_lm_rankings = load_all_rankings('C:/Users/s4021/OneDrive/桌面/Machine-learning-for-NLP/Ranking_Output/JM_LM_Output')
-
+# Load data
+relevance_judgements = load_relevance_judgements(relevance_judgements_path)
+prm_rankings = load_prm_rankings(prm_rankings_path)
+bm25_rankings = load_all_rankings(bm25_rankings_path)
+jm_lm_rankings = load_all_rankings(jm_lm_rankings_path)
 
 # Evaluate the models
 evaluation_results = evaluate_models_with_prm(relevance_judgements, bm25_rankings, jm_lm_rankings, prm_rankings)
@@ -197,36 +176,46 @@ map_table.to_csv('map_table.csv', index=False)
 precision_table.to_csv('precision_table.csv', index=False)
 dcg_table.to_csv('dcg_table.csv', index=False)
 
-# Perform paired t-tests
-t_test_results = perform_paired_t_tests(evaluation_results)
 
-# Print t-test results
-for metric, comparisons in t_test_results.items():
-    print(f"{metric} Paired T-Test Results:")
-    for comparison, result in comparisons.items():
-        print(f"  {comparison}:")
-        print(f"    t-statistic: {result['t_stat']}")
-        print(f"    p-value: {result['p_value']}")
+# Perform paired t-tests for MAP, Precision@10, and DCG@10 and save results
+def perform_ttest(data1, data2, label1, label2):
+    t_statistic, p_value = ttest_rel(data1, data2, nan_policy='omit')
+    significant = p_value < 0.05
+    return t_statistic, p_value, significant
 
-# Save the t-test results to a file
-with open('t_test_results.txt', 'w') as f:
-    for metric, comparisons in t_test_results.items():
-        f.write(f"{metric} Paired T-Test Results:\n")
-        for comparison, result in comparisons.items():
-            f.write(f"  {comparison}:\n")
-            f.write(f"    t-statistic: {result['t_stat']}\n")
-            f.write(f"    p-value: {result['p_value']}\n")
+# Perform t-tests for MAP
+t_statistic_bm25_jm_lm_map, p_value_bm25_jm_lm_map, sig_bm25_jm_lm_map = perform_ttest(evaluation_results['BM25_MAP'].iloc[:-1], evaluation_results['JM_LM_MAP'].iloc[:-1], 'BM25', 'JM_LM')
+t_statistic_bm25_my_prm_map, p_value_bm25_my_prm_map, sig_bm25_my_prm_map = perform_ttest(evaluation_results['BM25_MAP'].iloc[:-1], evaluation_results['My_PRM_MAP'].iloc[:-1], 'BM25', 'My_PRM')
+t_statistic_jm_lm_my_prm_map, p_value_jm_lm_my_prm_map, sig_jm_lm_my_prm_map = perform_ttest(evaluation_results['JM_LM_MAP'].iloc[:-1], evaluation_results['My_PRM_MAP'].iloc[:-1], 'JM_LM', 'My_PRM')
 
-# Recommendations based on t-test results
-recommendations = []
-for metric, comparisons in t_test_results.items():
-    for comparison, result in comparisons.items():
-        if result['p_value'] < 0.05:
-            recommendations.append(f"{metric}: {comparison} shows a significant difference (p < 0.05)")
+# Perform t-tests for Precision@10
+t_statistic_bm25_jm_lm_prec10, p_value_bm25_jm_lm_prec10, sig_bm25_jm_lm_prec10 = perform_ttest(evaluation_results['BM25_Precision@10'].iloc[:-1], evaluation_results['JM_LM_Precision@10'].iloc[:-1], 'BM25', 'JM_LM')
+t_statistic_bm25_my_prm_prec10, p_value_bm25_my_prm_prec10, sig_bm25_my_prm_prec10 = perform_ttest(evaluation_results['BM25_Precision@10'].iloc[:-1], evaluation_results['My_PRM_Precision@10'].iloc[:-1], 'BM25', 'My_PRM')
+t_statistic_jm_lm_my_prm_prec10, p_value_jm_lm_my_prm_prec10, sig_jm_lm_my_prm_prec10 = perform_ttest(evaluation_results['JM_LM_Precision@10'].iloc[:-1], evaluation_results['My_PRM_Precision@10'].iloc[:-1], 'JM_LM', 'My_PRM')
 
-if recommendations:
-    print("\nRecommendations based on t-test results:")
-    for recommendation in recommendations:
-        print(recommendation)
-else:
-    print("\nNo significant differences found in the paired t-tests.")
+# Perform t-tests for DCG@10
+t_statistic_bm25_jm_lm_dcg10, p_value_bm25_jm_lm_dcg10, sig_bm25_jm_lm_dcg10 = perform_ttest(evaluation_results['BM25_DCG@10'].iloc[:-1], evaluation_results['JM_LM_DCG@10'].iloc[:-1], 'BM25', 'JM_LM')
+t_statistic_bm25_my_prm_dcg10, p_value_bm25_my_prm_dcg10, sig_bm25_my_prm_dcg10 = perform_ttest(evaluation_results['BM25_DCG@10'].iloc[:-1], evaluation_results['My_PRM_DCG@10'].iloc[:-1], 'BM25', 'My_PRM')
+t_statistic_jm_lm_my_prm_dcg10, p_value_jm_lm_my_prm_dcg10, sig_jm_lm_my_prm_dcg10 = perform_ttest(evaluation_results['JM_LM_DCG@10'].iloc[:-1], evaluation_results['My_PRM_DCG@10'].iloc[:-1], 'JM_LM', 'My_PRM')
+
+# Save t-test results to a DataFrame
+ttest_results = pd.DataFrame({
+    'Comparison': ['BM25_vs_JM_LM', 'BM25_vs_My_PRM', 'JM_LM_vs_My_PRM'],
+    'MAP_t-statistic': [t_statistic_bm25_jm_lm_map, t_statistic_bm25_my_prm_map, t_statistic_jm_lm_my_prm_map],
+    'MAP_p-value': [p_value_bm25_jm_lm_map, p_value_bm25_my_prm_map, p_value_jm_lm_my_prm_map],
+    'MAP_Significant': [sig_bm25_jm_lm_map, sig_bm25_my_prm_map, sig_jm_lm_my_prm_map],
+    'Precision@10_t-statistic': [t_statistic_bm25_jm_lm_prec10, t_statistic_bm25_my_prm_prec10, t_statistic_jm_lm_my_prm_prec10],
+    'Precision@10_p-value': [p_value_bm25_jm_lm_prec10, p_value_bm25_my_prm_prec10, p_value_jm_lm_my_prm_prec10],
+    'Precision@10_Significant': [sig_bm25_jm_lm_prec10, sig_bm25_my_prm_prec10, sig_jm_lm_my_prm_prec10],
+    'DCG@10_t-statistic': [t_statistic_bm25_jm_lm_dcg10, t_statistic_bm25_my_prm_dcg10, t_statistic_jm_lm_my_prm_dcg10],
+    'DCG@10_p-value': [p_value_bm25_jm_lm_dcg10, p_value_bm25_my_prm_dcg10, p_value_jm_lm_my_prm_dcg10],
+    'DCG@10_Significant': [sig_bm25_jm_lm_dcg10, sig_bm25_my_prm_dcg10, sig_jm_lm_my_prm_dcg10]
+})
+
+# Save t-test results to CSV
+ttest_results.to_csv('ttest_results.csv', index=False)
+
+# Display t-test results
+print("\nT-Test Results:")
+print(ttest_results.to_string(index=False))
+
