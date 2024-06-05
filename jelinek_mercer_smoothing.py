@@ -88,9 +88,4 @@ def jm_lm(collections_of_queries, data_collection):
     
   
    
-    # # Define the output file path
-    # output_file = os.path.join(output_path, f'JM_LM_{query_id}Ranking.dat')
-    # # Write the rankings to the output file
-    # with open(output_file, 'w') as out_file:
-    #     for doc_id, score in rankings:
-    #         out_file.write(f'{doc_id} {score}\n')
+  
