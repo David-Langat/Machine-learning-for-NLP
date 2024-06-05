@@ -5,7 +5,7 @@ from bm25 import my_bm25
 
 
 def retrieve_bm25(collection_of_queries, data_collection):
-    '''calculate bm25 scores for all queries and save the scores to a file'''
+    '''get bm25 scores for all queries and save the scores to a file'''
     #get the bm25 scores
     query_position = 101
     document_collection_position = 0
@@ -49,7 +49,7 @@ def create_prm_benchmark():
                 for line in in_file:
                     doc_id, score = line.strip().split()
                     score = float(score)
-                    relevance_score = 1 if score > 1 else 0
+                    relevance_score = 1 if score > 0.5 else 0
                     out_file.write(f'{base.split("_")[-1]} {doc_id} {relevance_score}\n')
 
     
