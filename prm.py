@@ -56,6 +56,7 @@ def create_prm_benchmark():
 
 def get_relevance_scores():
     """Get lists of all document IDs, IDs with relevance score 1, and IDs with relevance score 0."""
+
     input_dir = os.path.join(os.getcwd(), 'Ranking_Output', 'PRM_Output', 'PRM_Training_benchmark')
 
     doc_ids_dict = {i: {'all_ids': [], 'ids_score_1': [], 'ids_score_0': []} for i in range(50)}
