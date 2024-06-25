@@ -1,46 +1,78 @@
-from abc import abstractmethod
+'''Import abc to create abstract classes and methods'''
+from abc import ABC, abstractmethod
 
 
-class AbstractFileHandler():
-    '''Abstract file handler class with load and save methods.
+class FileStrategy(ABC):
+    '''Abstract class for file handling . 
     
-    All file handlers should inherit from this class and implement the load and save methods.
-    '''
+    I'll be using the strategy design pattern to implement different file handling strategies.'''
     @abstractmethod
-    def load(self, filename):
-        '''abstract method to load the file data from the file system.'''
+    def load(self, file_path):
+        '''abstract method for loading files.'''
 
     @abstractmethod
-    def save(self, filename, new_data):
-        ''''abstract method to save the file data to the file system.'''
+    def save(self, data, file_path):
+        '''abstract method for saving files.'''
+        
 
-class TextFileHandler(AbstractFileHandler):
-    '''Concrete file handler class that implements the load and save methods for text files.'''
-    def load(self, filename):
-        '''Open the text file and read the contents.
+
+class KeyValueFile(FileStrategy):
+    '''Concrete class for key-value file handling.
     
-        Returns the text data within the file'''
-        with open(filename, 'r', encoding='utf-8') as file:
-            text_data = file.read()
-        return text_data
+    data - a dictionary containing document id: document scores pairs'''
+    def load(self, file_path):
+        '''Method to read the file and return the data as a dictionary.'''
+        # Read file and return data variable with the key-value pairs
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = {}
+            for line in file:
+                key, value = line.strip().split(':')
+                data[key] = value
+        return data
+
+    def save(self, data, file_path):
+        '''Method to save the key-value data to the file.'''
+        # Write data to file in key-value format
+        with open(file_path, 'w', encoding='utf-8') as file:
+            for key, value in data.items():
+                file.write(f"{key}\t{value}\n")
+
+class ThreePartFile(FileStrategy):
+    '''Concrete to handle file with data that is split into three parts.
     
-    def save(self, filename, new_data):
-        '''Open the text file and write data into it'''
-        with open(filename, 'w', encoding='utf-8') as file:
-            file.write(new_data)
+    Example - R101 83167 0 
+    Therefore it must be handled differently '''
+    def load(self, file_path):
+        '''Method to read the data and return it as a list of lines.'''
+        # Read the data from the file. Store each line in a list.
+        with open(file_path,'r',encoding = 'utf-8') as file:
+            data = []
+            for line in file:
+                data.append(line.strip().split())
+        return data
 
-class JsonFileHandler(AbstractFileHandler):
-    '''Concrete file handler class that implements the load and save methods for JSON files.'''
+    def save(self, data, file_path):
+        '''Method to save the data onto the file.'''
+        # Save each the data to the file
+        with open(file_path, 'w', encoding='utf-8') as file:
+            for line in data:
+                file.write(line)
+                file.write('\n')
 
-class FileHandlerFactory:
-    def get_file_handler(self, type):
-        if type == 'txt':
-            return TextFileHandler()
-        else:
-            raise ValueError("Invalid file type")
 
-# Usage
-factory = FileHandlerFactory()
-handler = factory.get_file_handler('txt')
-data = handler.load('myfile.txt')
-handler.save('myfile.txt', data)
+class FileHandler:
+    '''Context class for file handling.'''
+    def __init__(self, strategy: FileStrategy):
+        self.strategy = strategy
+
+    def load(self, file_path):
+        '''Method to load the file using the specified strategy.'''
+        return self.strategy.load(file_path)
+
+    def save(self, data, file_path):
+        '''Method to save the file using the specified strategy.'''
+        self.strategy.save(data, file_path)
+
+    def set_strategy(self, strategy: FileStrategy):
+        '''Method to set the strategy for file handling.'''
+        self.strategy = strategy
