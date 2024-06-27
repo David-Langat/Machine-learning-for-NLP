@@ -13,8 +13,6 @@ class FileStrategy(ABC):
     @abstractmethod
     def save(self, data, file_path):
         '''abstract method for saving files.'''
-        
-
 
 class KeyValueFile(FileStrategy):
     '''Concrete class for key-value file handling.
@@ -26,7 +24,7 @@ class KeyValueFile(FileStrategy):
         with open(file_path, 'r', encoding='utf-8') as file:
             data = {}
             for line in file:
-                key, value = line.strip().split(':')
+                key, value = line.strip().split(' ')
                 data[key] = value
         return data
 
