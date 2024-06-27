@@ -1,8 +1,11 @@
 import math
 import os
+from file_handler import FileHandler, KeyValueFile
 
 def get_avg_length(collection_of_documents):
-    total_doc_length = sum(doc.doc_len for doc in collection_of_documents.get_docs().values()) #add up all doc lengths for documents in coll 
+    '''Get the average length of documents in the collection'''
+    #add up all doc lengths for documents in coll 
+    total_doc_length = sum(doc.doc_len for doc in collection_of_documents.get_docs().values()) 
     return total_doc_length / collection_of_documents.get_num_docs() if collection_of_documents else 0
 
 
@@ -49,12 +52,15 @@ def perform_bm25(collection_of_queries, data_collection):
         collection_of_documents = data_collection.get_collection(document_collection_position)
         #get the document frequency which is a dictionary with term as key and term frequency as value
         rankings =my_bm25(collection_of_documents, query)
+        # Cut the dictionary to only have the first 15 pairs
+        top_15_rankings = {}
+        for i, (doc_id, score) in enumerate(rankings.items()):
+            if i >= 15:
+                break
+            top_15_rankings[doc_id] = score
         #save the rankings to a file
-        with open(output_file, 'w', encoding='utf-8') as out_file:
-            for i, (doc_id, score) in enumerate(rankings.items()):
-                if i >= 15:
-                    break
-                out_file.write(f'{doc_id} {score}\n')
+        bm25_file_handler = FileHandler(KeyValueFile())
+        bm25_file_handler.save(top_15_rankings, output_file)
         document_collection_position += 1
         query_position += 1
     #change directory back to the root directory
